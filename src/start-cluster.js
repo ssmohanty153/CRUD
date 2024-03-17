@@ -11,11 +11,11 @@ dotenv.config({
 });
 
 // Function to create worker processes
-const createWorker = () => {
-    const worker = cluster.fork();
+const createWorker = (port) => {
+    const worker = cluster.fork({ PORT: port });
     worker.on('exit', () => {
         console.log(`Worker ${worker.process.pid} died`);
-        createWorker();
+        createWorker(port); // Restart the worker if it exits
     });
 };
 
@@ -23,9 +23,14 @@ const createWorker = () => {
 if (cluster.isMaster) {
     // Create workers based on the number of CPU cores minus 1 (to leave one core for the master process)
     const numWorkers = os.cpus().length - 1;
+    let port = parseInt(process.env.PORT) || 4001; // Starting port number
     for (let i = 0; i < numWorkers; i++) {
-        createWorker();
+        createWorker(port + i); // Create worker processes with unique ports
     }
+    // Load balancer listening on port 4000
+    app.listen(4000, () => {
+        console.log('Load balancer is listening on port 4000');
+    });
 } else {
     // In each worker process, establish database connection and start the application
     connectDB()
@@ -34,8 +39,9 @@ if (cluster.isMaster) {
                 console.error('Error', error);
                 throw error;
             });
-            app.listen(process.env.PORT || 3000, () => {
-                console.log(`Worker ${process.pid} is running at Port : ${process.env.PORT}`);
+            const workerPort = process.env.PORT || 4001;
+            app.listen(workerPort, () => {
+                console.log(`Worker ${process.pid} is running at Port : ${workerPort}`);
             });
         })
         .catch((error) => {

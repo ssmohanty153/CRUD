@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start:dev": "nodemon -r dotenv/config --experimental-json-modules src/server.js",
-    "start:prod": "node src/server.js"
+    "start:prod": "node src/server.js",
+    "start:multi": "node ./src/start-cluster.js"
   },
   "keywords": [
     "crud",
